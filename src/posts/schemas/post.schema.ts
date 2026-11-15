@@ -4,13 +4,16 @@ import { Document, Types } from 'mongoose';
 @Schema({ timestamps: true })
 export class Post extends Document {
   @Prop({ required: true, trim: true })
-  contenido: string;
+  titulo: string;
+
+  @Prop({ required: true, trim: true })
+  cuerpo: string;
 
   @Prop()
   imagen?: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  autor: Types.ObjectId;
+  autor: Types.ObjectId | any;
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
   likes: Types.ObjectId[];

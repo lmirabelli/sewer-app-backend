@@ -9,11 +9,18 @@ import { CreateCommentDto } from './dto/create-comment.dto.js';
 export class PostsService {
   constructor(@InjectModel(Post.name) private postModel: Model<Post>) {}
 
-  async create(createPostDto: CreatePostDto, userId: string) {
-    return this.postModel.create({
+async create(createPostDto: CreatePostDto, userId: string) {
+    const nuevoPost = new this.postModel({
       ...createPostDto,
       autor: new Types.ObjectId(userId),
     });
+
+    const postGuardado = await nuevoPost.save();
+
+    return this.postModel
+      .findById(postGuardado._id)
+      .populate('autor', 'username email avatar')
+      .exec();
   }
 
   async findAll(query: { orden?: string; usuarioId?: string; limit?: string; offset?: string }) {
@@ -23,23 +30,43 @@ export class PostsService {
       filtros.autor = new Types.ObjectId(query.usuarioId);
     }
 
+    const offset = parseInt(query.offset || '0', 10);
+    const limit = parseInt(query.limit || '10', 10);
+
+    if (query.orden === 'likes') {
+      const sortedDocs = await this.postModel.aggregate([
+        { $match: filtros },
+        { $addFields: { likesCount: { $size: { $ifNull: ['$likes', []] } } } },
+        { $sort: { likesCount: -1, createdAt: -1 } },
+        { $skip: offset },
+        { $limit: limit },
+        { $project: { _id: 1 } }
+      ]);
+
+      const ids = sortedDocs.map(d => d._id);
+      if (ids.length === 0) return [];
+
+      const posts = await this.postModel
+        .find({ _id: { $in: ids } })
+        .populate('autor', 'username email avatar')
+        .populate('comentarios.usuario', 'username email avatar')
+        .exec();
+
+      return ids.map(id => posts.find(p => p._id.toString() === id.toString())).filter(Boolean);
+    }
+
     let consulta = this.postModel
       .find(filtros)
       .populate('autor', 'username email avatar')
-      .populate('comentarios.usuario', 'username email avatar');
-
-    if (query.orden === 'likes') {
-      consulta = consulta.sort({ likes: -1, createdAt: -1 });
-    } else {
-      consulta = consulta.sort({ createdAt: -1 });
-    }
+      .populate('comentarios.usuario', 'username email avatar')
+      .sort({ createdAt: -1 });
 
     if (query.offset) {
-      consulta = consulta.skip(parseInt(query.offset, 10) || 0);
+      consulta = consulta.skip(offset);
     }
     
     if (query.limit) {
-      consulta = consulta.limit(parseInt(query.limit, 10) || 10);
+      consulta = consulta.limit(limit);
     }
 
     return consulta.exec();

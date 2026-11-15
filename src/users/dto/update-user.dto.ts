@@ -1,15 +1,24 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, MinLength } from 'class-validator';
 
 export class UpdateUserDto {
   @IsOptional()
-  @IsString({ message: 'El nombre debe ser un texto' })
+  @IsString()
   nombre?: string;
 
   @IsOptional()
-  @IsString({ message: 'El avatar debe ser una URL válida' })
-  avatar?: string;
+  @IsString()
+  apellido?: string;
 
   @IsOptional()
-  @IsString({ message: 'La biografía debe ser un texto' })
-  biografia?: string;
+  @IsString()
+  username?: string;
+
+  @IsOptional()
+  @IsString()
+  passwordActual?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  passwordNueva?: string;
 }

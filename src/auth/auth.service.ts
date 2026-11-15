@@ -24,6 +24,8 @@ export class AuthService {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        const defaultAvatar = 'https://i.ibb.co/Pzs03sgB/sewer-app.png';
+
         const newUser = new this.userModel({
             nombre,
             apellido,
@@ -31,14 +33,14 @@ export class AuthService {
             email,
             password: hashedPassword,
             fechaNacimiento,
-            avatar: avatar || null,
+            avatar: avatar || defaultAvatar,
         });
 
         await newUser.save();
 
         return {
             mensaje: 'Usuario registrado exitosamente',
-            usuario: { id: newUser._id, nombre: newUser.nombre, email: newUser.email, username: newUser.username },
+            usuario: { id: newUser._id, nombre: newUser.nombre, email: newUser.email, username: newUser.username, avatar: newUser.avatar },
         };
     }
 
