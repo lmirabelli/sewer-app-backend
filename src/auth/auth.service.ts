@@ -47,12 +47,12 @@ export class AuthService {
 
         const user = await this.userModel.findOne({ email });
         if (!user) {
-            throw new UnauthorizedException('El e-mail no existe en esta cloaca');
+            throw new UnauthorizedException('Esos datos no existe en esta cloaca');
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            throw new UnauthorizedException('Le erraste a la contraseña, intentalo otra vez');
+            throw new UnauthorizedException('Los datos no son correctos, intentalo otra vez');
         }
 
         const payload = { 
