@@ -24,6 +24,11 @@ export class PostsController {
     return this.postsService.findAll({ orden, usuarioId, limit, offset });
   }
 
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.postsService.findOne(id);
+  }
+
   @Patch(':id/like')
   toggleLike(@Param('id') id: string, @Request() req: any) {
     return this.postsService.toggleLike(id, req.user.userId);
@@ -36,6 +41,16 @@ export class PostsController {
     @Request() req: any,
   ) {
     return this.postsService.addComment(id, createCommentDto, req.user.userId);
+  }
+
+  @Patch(':id/comments/:commentId')
+  editComment(
+    @Param('id') postId: string,
+    @Param('commentId') commentId: string,
+    @Body('texto') texto: string,
+    @Request() req: any,
+  ) {
+    return this.postsService.editComment(postId, commentId, texto, req.user.userId);
   }
 
   @Delete(':id')

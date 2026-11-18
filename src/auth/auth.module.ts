@@ -6,6 +6,8 @@ import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { User, UserSchema } from '../users/schemas/user.schema.js';
 import { JwtStrategy } from './jwt.strategy.js';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module.js';
+
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { JwtStrategy } from './jwt.strategy.js';
         },
       }),
     }),
+    CloudinaryModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

@@ -24,7 +24,7 @@ export class AuthService {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const defaultAvatar = 'https://i.ibb.co/Pzs03sgB/sewer-app.png';
+        const defaultAvatar = 'https://res.cloudinary.com/zft2yvop/image/upload/v1794969924/sewer-app.png';
 
         const newUser = new this.userModel({
             nombre,
@@ -38,9 +38,24 @@ export class AuthService {
 
         await newUser.save();
 
+        const payload = { 
+            sub: newUser._id, 
+            email: newUser.email, 
+            perfil: newUser.perfil 
+        };
+        const token = this.jwtService.sign(payload);
+
         return {
             mensaje: 'Usuario registrado exitosamente',
-            usuario: { id: newUser._id, nombre: newUser.nombre, email: newUser.email, username: newUser.username, avatar: newUser.avatar },
+            access_token: token,
+            usuario: { 
+                id: newUser._id, 
+                nombre: newUser.nombre, 
+                email: newUser.email, 
+                username: newUser.username, 
+                perfil: newUser.perfil,
+                avatar: newUser.avatar 
+            },
         };
     }
 
@@ -74,6 +89,19 @@ export class AuthService {
                 email: user.email, 
                 perfil: user.perfil
             },
+        };
+    }
+
+    async refreshToken(userId: string) {
+        const user = await this.userModel.findById(userId);
+        if (!user) throw new UnauthorizedException('Usuario no encontrado');
+
+        const payload = { sub: user._id, email: user.email, perfil: user.perfil };
+        
+        const nuevoToken = this.jwtService.sign(payload);
+
+        return {
+            access_token: nuevoToken
         };
     }
 }

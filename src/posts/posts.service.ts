@@ -9,7 +9,7 @@ import { CreateCommentDto } from './dto/create-comment.dto.js';
 export class PostsService {
   constructor(@InjectModel(Post.name) private postModel: Model<Post>) {}
 
-async create(createPostDto: CreatePostDto, userId: string) {
+  async create(createPostDto: CreatePostDto, userId: string) {
     const nuevoPost = new this.postModel({
       ...createPostDto,
       autor: new Types.ObjectId(userId),
@@ -72,6 +72,17 @@ async create(createPostDto: CreatePostDto, userId: string) {
     return consulta.exec();
   }
 
+  async findOne(postId: string) {
+    const post = await this.postModel
+      .findById(postId)
+      .populate('autor', 'username email avatar')
+      .populate('comentarios.usuario', 'username email avatar')
+      .exec();
+
+    if (!post) throw new NotFoundException('Publicación no encontrada');
+    return post;
+  }
+
   async toggleLike(postId: string, userId: string) {
     const post = await this.postModel.findById(postId);
     if (!post) throw new NotFoundException('Publicación no encontrada');
@@ -96,9 +107,40 @@ async create(createPostDto: CreatePostDto, userId: string) {
       usuario: new Types.ObjectId(userId),
       texto: createCommentDto.texto,
       createdAt: new Date(),
-    });
+      editado: false, 
+    } as any);
 
-    return post.save();
+    await post.save();
+
+    return this.postModel
+      .findById(postId)
+      .populate('autor', 'username email avatar')
+      .populate('comentarios.usuario', 'username email avatar')
+      .exec();
+  }
+
+  async editComment(postId: string, commentId: string, texto: string, userId: string) {
+    const post = await this.postModel.findById(postId);
+    if (!post) throw new NotFoundException('Publicación no encontrada');
+
+    const comentario = post.comentarios.id(commentId);
+    
+    if (!comentario) throw new NotFoundException('Comentario no encontrado');
+
+    if (comentario.usuario.toString() !== userId) {
+      throw new NotFoundException('No tenés permisos para editar este comentario');
+    }
+
+    comentario.texto = texto;
+    comentario.editado = true;
+
+    await post.save();
+
+    return this.postModel
+      .findById(postId)
+      .populate('autor', 'username email avatar')
+      .populate('comentarios.usuario', 'username email avatar')
+      .exec();
   }
 
   async remove(postId: string, userId: string) {

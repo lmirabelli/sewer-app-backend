@@ -6,31 +6,31 @@ import {
   HttpStatus, 
   UseInterceptors, 
   UploadedFile, 
-  BadRequestException 
+  BadRequestException,
+  Get,         
+  UseGuards,   
+  Request      
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';
 import { AuthService } from './auth.service.js';
+import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
     FileInterceptor('avatar', {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (req, file, callback) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          callback(null, `avatar-${uniqueSuffix}${ext}`);
-        },
-      }),
+      storage: memoryStorage(),
       limits: {
         fileSize: 5 * 1024 * 1024,
       },
@@ -47,7 +47,8 @@ export class AuthController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (file) {
-      registerDto.avatar = `/uploads/${file.filename}`;
+      const uploadResult: any = await this.cloudinaryService.uploadImage(file);
+      registerDto.avatar = uploadResult.secure_url;
     }
 
     return this.authService.register(registerDto);
@@ -57,5 +58,17 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Get('validate')
+  @UseGuards(JwtAuthGuard)
+  validateToken(@Request() req: any) {
+    return { valid: true, usuario: req.user };
+  }
+
+  @Post('refresh')
+  @UseGuards(JwtAuthGuard)
+  refreshToken(@Request() req: any) {
+    return this.authService.refreshToken(req.user.userId);
   }
 }
