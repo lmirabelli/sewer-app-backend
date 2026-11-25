@@ -60,34 +60,36 @@ export class AuthService {
     }
 
     async login(loginDto: LoginDto) {
-        const { email, password } = loginDto;
+        const { identifier, password } = loginDto;
 
-        const user = await this.userModel.findOne({ email });
+        const user = await this.userModel.findOne({
+            $or: [
+                { email: identifier.toLowerCase() },
+                { username: identifier }
+            ]
+        });
+
         if (!user) {
-            throw new UnauthorizedException('Esos datos no existe en esta cloaca');
+            throw new UnauthorizedException('Esos datos no existen en esta cloaca');
         }
+        if (!user.habilitado) {
+        throw new UnauthorizedException('Tu cuenta ha sido deshabilitada. Contactá a un administrador.');
+    }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             throw new UnauthorizedException('Los datos no son correctos, intentalo otra vez');
         }
 
-        const payload = { 
-            sub: user._id, 
-            email: user.email, 
-            perfil: user.perfil
-        };
-        
+        const payload = { sub: user._id, email: user.email, perfil: user.perfil };
         const token = this.jwtService.sign(payload);
 
         return {
             mensaje: 'Login exitoso',
             access_token: token,
             usuario: { 
-                id: user._id, 
-                nombre: user.nombre, 
-                email: user.email, 
-                perfil: user.perfil
+                id: user._id, nombre: user.nombre, email: user.email, 
+                perfil: user.perfil 
             },
         };
     }

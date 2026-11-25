@@ -27,8 +27,12 @@ export class User extends Document {
   @Prop({ default: '' })
   avatar: string;
 
-  @Prop({ default: 'usuario', enum: ['usuario', 'administrador'] })
+  @Prop({ default: 'usuario', enum: ['usuario', 'admin'] })
   perfil: string;
+
+  @Prop({ default: true }) 
+  habilitado: boolean; 
+
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

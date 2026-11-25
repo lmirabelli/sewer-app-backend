@@ -7,7 +7,7 @@ import { CreateCommentDto } from './dto/create-comment.dto.js';
 
 @Injectable()
 export class PostsService {
-  constructor(@InjectModel(Post.name) private postModel: Model<Post>) {}
+  constructor(@InjectModel(Post.name) private postModel: Model<Post>) { }
 
   async create(createPostDto: CreatePostDto, userId: string) {
     const nuevoPost = new this.postModel({
@@ -49,7 +49,7 @@ export class PostsService {
       const posts = await this.postModel
         .find({ _id: { $in: ids } })
         .populate('autor', 'username email avatar')
-        .populate('comentarios.usuario', 'username email avatar')
+        .populate('comentarios.usuario', 'username email avatar perfil')
         .exec();
 
       return ids.map(id => posts.find(p => p._id.toString() === id.toString())).filter(Boolean);
@@ -58,13 +58,13 @@ export class PostsService {
     let consulta = this.postModel
       .find(filtros)
       .populate('autor', 'username email avatar')
-      .populate('comentarios.usuario', 'username email avatar')
+      .populate('comentarios.usuario', 'username email avatar perfil')
       .sort({ createdAt: -1 });
 
     if (query.offset) {
       consulta = consulta.skip(offset);
     }
-    
+
     if (query.limit) {
       consulta = consulta.limit(limit);
     }
@@ -76,7 +76,7 @@ export class PostsService {
     const post = await this.postModel
       .findById(postId)
       .populate('autor', 'username email avatar')
-      .populate('comentarios.usuario', 'username email avatar')
+      .populate('comentarios.usuario', 'username email avatar perfil')
       .exec();
 
     if (!post) throw new NotFoundException('Publicación no encontrada');
@@ -107,7 +107,7 @@ export class PostsService {
       usuario: new Types.ObjectId(userId),
       texto: createCommentDto.texto,
       createdAt: new Date(),
-      editado: false, 
+      editado: false,
     } as any);
 
     await post.save();
@@ -115,7 +115,7 @@ export class PostsService {
     return this.postModel
       .findById(postId)
       .populate('autor', 'username email avatar')
-      .populate('comentarios.usuario', 'username email avatar')
+      .populate('comentarios.usuario', 'username email avatar perfil')
       .exec();
   }
 
@@ -124,7 +124,7 @@ export class PostsService {
     if (!post) throw new NotFoundException('Publicación no encontrada');
 
     const comentario = post.comentarios.id(commentId);
-    
+
     if (!comentario) throw new NotFoundException('Comentario no encontrado');
 
     if (comentario.usuario.toString() !== userId) {
@@ -139,15 +139,15 @@ export class PostsService {
     return this.postModel
       .findById(postId)
       .populate('autor', 'username email avatar')
-      .populate('comentarios.usuario', 'username email avatar')
+      .populate('comentarios.usuario', 'username email avatar perfil')
       .exec();
   }
 
-  async remove(postId: string, userId: string) {
+  async remove(postId: string, userId: string, userPerfil: string) {
     const post = await this.postModel.findById(postId);
     if (!post) throw new NotFoundException('Publicación no encontrada');
 
-    if (post.autor.toString() !== userId) {
+    if (post.autor.toString() !== userId && userPerfil !== 'admin') {
       throw new NotFoundException('No tenés permisos para eliminar este post');
     }
 
